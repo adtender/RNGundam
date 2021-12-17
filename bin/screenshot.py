@@ -182,11 +182,12 @@ class SCREENSHOT:
         else:
             o = 'ffmpeg -y -ss {} -copyts -i "{}" "{}output.jpg"'.format(
                     secondToStart, video, self.odest)
-        subprocess.check_output(o,shell=True)
+        subprocess.check_output(o)
         print("\n", o, "\n")
         self.runCommand = o
 
     def ass_subtitles(self, secondToStart, index, gifEnd):
+        print("v file: ", self.videoFileSelected)
         video = self.windows_check(self.videoFileSelected)
         if self.gifOrNo:
             #assCompile = 'ffmpeg -y -ss {} -t {} -itsoffset {} -i "{}"  -filter_complex "[0:v]fps={},scale=500:-1:flags=lanczos,split [a][b]; [a] palettegen [p]; [b][p] paletteuse,subtitles={}:si={}[v]" -map "[v]" "{}output.gif"'.format(
@@ -200,7 +201,11 @@ class SCREENSHOT:
         #subprocess.check_output(assCompile,shell=True)
         #print("\n", assCompile, "\n")
         #self.runCommand = assCompile
-        subprocess.check_output(assCompile)
+        if os.name == 'nt':
+            subprocess.check_output(assCompile)
+        else:
+            subprocess.call(assCompile, shell=True)
+
     def windows_check(self, video):
         if os.name == 'nt':
             return video.replace("\\", "/")
