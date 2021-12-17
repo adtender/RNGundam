@@ -1,16 +1,14 @@
-import asyncio
 import os
-from datetime import date
+import sys
 import screenshot
 import tweetMedia
 import config
 
-
-def main():
+def main(arg):
     
-    test_1()
+    test_1(arg)
         
-def test_1():
+def test_1(arg):
     tweet = tweetMedia.TWEET()
     media = screenshot.SCREENSHOT()
     
@@ -18,6 +16,7 @@ def test_1():
     media.select_video()
     media.print_info()
     media.ffmpeg_work()
+    print(tweet.set(media, arg))
     
 def test_2():
     dStatus = ""
@@ -44,4 +43,4 @@ def test_2():
         print(sendBack)
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv)

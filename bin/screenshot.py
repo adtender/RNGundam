@@ -15,7 +15,7 @@ from pathlib import Path
 class SCREENSHOT:
     
     def __init__(self) -> None:
-        self.odest = config.Temp_Media_location
+        self.odest = config.Generated_Media_Location
         self.videoNumberSelected = 243 # change to zero before committing
         self.videoFileSelected = ""
         self.videoFileSelectedPath = ""
@@ -67,7 +67,7 @@ class SCREENSHOT:
                             file.endswith(".mp4") or
                             file.endswith(".mov") or
                             file.endswith(".avi"))]
-            
+        
         self.videoNumberSelected = random.randint(0,len(mediaList)-1)
         #self.videoNumberSelected = 0
         self.videoFileSelected = mediaList[self.videoNumberSelected]
@@ -175,31 +175,37 @@ class SCREENSHOT:
         if gifEnd != originalGifEnd: print("gif resized\nResized gif length: ", gifEnd)
 
     def no_subtitles(self, secondToStart, gifEnd):
+        video = self.windows_check(self.videoFileSelected)
         if self.gifOrNo:
             o = 'ffmpeg -y -ss {} -t {} -i "{}"  -filter_complex "scale=500:-1:flags=lanczos,split [a][b]; [a] palettegen [p]; [b][p] paletteuse" "{}output.gif"'.format(
-                    secondToStart, gifEnd, self.videoFileSelected, self.odest)
+                    secondToStart, gifEnd, video, self.odest)
         else:
             o = 'ffmpeg -y -ss {} -copyts -i "{}" "{}output.jpg"'.format(
-                    secondToStart, self.videoFileSelected, self.odest)
+                    secondToStart, video, self.odest)
         subprocess.check_output(o,shell=True)
         print("\n", o, "\n")
         self.runCommand = o
 
     def ass_subtitles(self, secondToStart, index, gifEnd):
+        video = self.windows_check(self.videoFileSelected)
         if self.gifOrNo:
             #assCompile = 'ffmpeg -y -ss {} -t {} -itsoffset {} -i "{}"  -filter_complex "[0:v]fps={},scale=500:-1:flags=lanczos,split [a][b]; [a] palettegen [p]; [b][p] paletteuse,subtitles={}:si={}[v]" -map "[v]" "{}output.gif"'.format(
             #    secondToStart, gifEnd, secondToStart, self.videoFileSelected, math.ceil(self.fps), self.videoFileSelected, index, self.odest)
             assCompile = 'ffmpeg -y -ss {} -t {} -itsoffset {} -i "{}" -vf "subtitles={},fps={},scale=500:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=255:reserve_transparent=0[p];[s1][p]paletteuse" {}output.gif'.format(
-                secondToStart, gifEnd, secondToStart, self.videoFileSelected, self.videoFileSelected, self.fps, self.odest)
-
+                secondToStart, gifEnd, secondToStart, video, video, self.fps, self.odest)
 
         else:
             assCompile = 'ffmpeg -y -ss {} -copyts -i "{}" -vf subtitles="{}":stream_index={} -frames:v 1 "{}output.jpg"'.format(
-                secondToStart, self.videoFileSelected, self.videoFileSelected, index, self.odest)
+                secondToStart, video, video, index, self.odest)
         #subprocess.check_output(assCompile,shell=True)
         #print("\n", assCompile, "\n")
         #self.runCommand = assCompile
-        subprocess.call(assCompile, shell=True)
+        subprocess.check_output(assCompile)
+    def windows_check(self, video):
+        if os.name == 'nt':
+            return video.replace("\\", "/")
+        else:
+            return video
         
 
     '''
