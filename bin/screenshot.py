@@ -48,25 +48,35 @@ class SCREENSHOT:
         else:
             self.gifOrNo = False
         
-        # Within config.py, define a variable Subfolder set to the integer amount of subfolders within your containing media folder
+        # Within config.py, define a variable Subfolder set to the integer amount of subfolders within your parent media folder
         # For example if /Gundam is your containing media folder 
         # and your video files are in /Gundam/tv/ZetaGundam, variable Subfolders would be 2
-        # make sure that all video files are within the same depth of subfolders
+        # 
+        # Within config.py, define a variable Subfolders_Deep set to the integer of the amount of subfolders you want included
+        # For examples if /Gundam/tv/ZetaGundam is the Subfolder it's entered as stated previously and you've defined 1 to
+        # be the Subfolders_Deep, it would also pull video files from /Gundam/tv/ZetaGundam/extras
+        # This is useful if your media setup is /Show/Season or for other such uses
         
-        wildcard = '*/*'
+        wildcardString = "*/*"
         for _ in range(config.Subfolders):
-            wildcard += "/*"
-        
+            wildcardString += "/*"
+            
+        wildcard = [wildcardString]
+        for i in range(config.Subfolders_Deep):
+            wildcard.append(wildcard[i] + "/*")
+
         # Define variable Media_Location within config.py
         # For example, on a media drive  Media_Location = '\\\\raspberrypi\RaspberryPi NAS\media\plex\gundam'
         # An example for Windows would be  Media_Location = 'C:\\Users\Username\Videos'
-        
-        mediaListUnfiltered = glob.glob(config.Media_Location + wildcard)
-        mediaList = [file for file in mediaListUnfiltered if 
-                            ( file.endswith(".mkv") or 
-                            file.endswith(".mp4") or
-                            file.endswith(".mov") or
-                            file.endswith(".avi"))]
+
+        mediaList = []
+        for i in range(len(wildcard)):
+            mediaListUnfiltered = glob.glob(config.Media_Location + wildcard[i])
+            mediaList += [file for file in mediaListUnfiltered if 
+                                ( file.endswith(".mkv") or 
+                                file.endswith(".mp4") or
+                                file.endswith(".mov") or
+                                file.endswith(".avi"))]
         
         self.videoNumberSelected = random.randint(0,len(mediaList)-1)
         #self.videoNumberSelected = 0

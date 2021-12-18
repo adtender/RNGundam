@@ -116,3 +116,4 @@ dmypy.json
 bin/config.py
 videos
 output
+test.py
