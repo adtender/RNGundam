@@ -211,10 +211,7 @@ class SCREENSHOT:
         #subprocess.check_output(assCompile,shell=True)
         #print("\n", assCompile, "\n")
         #self.runCommand = assCompile
-        if os.name == 'nt':
-            subprocess.check_output(assCompile)
-        else:
-            subprocess.call(assCompile, shell=True)
+        subprocess.check_output(assCompile, shell=True)
 
     def windows_check(self, video):
         if os.name == 'nt':
