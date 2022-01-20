@@ -8,6 +8,9 @@ import subprocess
 import glob
 import config
 import cv2
+import sqlite3
+import datetime
+import hashlib
 from re import A, match
 from time import gmtime, strftime
 from pathlib import Path
@@ -79,7 +82,7 @@ class SCREENSHOT:
                                 file.endswith(".avi"))]
         
         self.videoNumberSelected = random.randint(0,len(mediaList)-1)
-        #self.videoNumberSelected = 0
+        #self.videoNumberSelected = 308
         self.videoFileSelected = mediaList[self.videoNumberSelected]
         self.videoFileSelectedPath, self.videoFileSelectedFileName = os.path.split(self.videoFileSelected)
         self.videoFileSelectedFileNameNoExtension = os.path.splitext(self.videoFileSelectedFileName)[0]
@@ -122,6 +125,7 @@ class SCREENSHOT:
         firstSubtitleStreamNumber = ""
         
         # Checks if the video file has subtitles
+
         try:
             subCheck = subprocess.check_output(x,shell=True).decode(sys.stdout.encoding)
             print("Sub check", subCheck)
@@ -165,14 +169,16 @@ class SCREENSHOT:
                 
             else:
                 print("hdmv")
-                self.no_subtitles(secondToStart, config.GIF_Length)
+                print(hdmvStream[0])
+                self.hdmv_pgs_subtitles(secondToStart, hdmvStream[0], config.GIF_Length)
                 if self.gifOrNo and config.GIF_Resize: self.resize_gif(False, secondToStart, None, config.GIF_Length)
                 
         print(self.videoFileSelectedFileNameNoExtension)
         print(self.frameSelectedTime)
 
-        print ("FFMPEG work done")
+        self.db_append()
 
+        print ("FFMPEG work done")
 
     def resize_gif(self, subtitles, secondToStart, indexToSend, gifEnd):
         originalGifEnd = gifEnd
@@ -190,9 +196,9 @@ class SCREENSHOT:
             o = 'ffmpeg -y -ss {} -t {} -i "{}"  -filter_complex "scale=500:-1:flags=lanczos,split [a][b]; [a] palettegen [p]; [b][p] paletteuse" "{}output.gif"'.format(
                     secondToStart, gifEnd, video, self.odest)
         else:
-            o = 'ffmpeg -y -ss {} -copyts -i "{}" "{}output.jpg"'.format(
+            o = 'ffmpeg -y -ss {} -copyts -i "{}" -vframes 1 "{}output.jpg"'.format(
                     secondToStart, video, self.odest)
-        subprocess.check_output(o)
+        subprocess.check_output(o, shell=True)
         print("\n", o, "\n")
         self.runCommand = o
 
@@ -218,28 +224,20 @@ class SCREENSHOT:
             return video.replace("\\", "/")
         else:
             return video
-        
-
-    '''
-    def hdmv_pgs_subtitles(self, secondToStart):
-        # Currently not working
-        # When picture based subtitles are able to be loaded with the current code (doesn't always work), they're misaligned
-
-        #for rendering a video, sometimes works with subtitles, needs work
-        hdmvCompile = 'ffmpeg -ss 00:13:14 -t 00:00:09 -itsoffset 00:13:14 -i "{}" -filter_complex "[0:v:0][0:s:0]overlay" -acodec copy -sn "{}/output.mkv"'.format(
-                self.videoFileSelected, self. odest)
-
+         
+    def hdmv_pgs_subtitles(self, secondToStart, index, gifEnd):
+        print("v file: ", self.videoFileSelected)
+        video = self.windows_check(self.videoFileSelected)
         if self.gifOrNo:
-            hdmvCompile = 'ffmpeg -ss {} -t {} -itsoffset {} -i "{}" -filter_complex "scale=500:-1:flags=lanczos,split [a][b]; [a] palettegen [p]; [b][p] paletteuse,[0:v:0][0:s:0]overlay" -acodec copy -sn "{}"output.gif'.format(
-                secondToStart, config.GIF_Length, secondToStart, self.videoFileSelected, self.odest)
+            hdmvCompile = 'ffmpeg -ss {} -t {} -i "{}" -filter_complex "[0:v][0:s:{}] overlay[a];[a] fps={},scale=w=500:h=-2,split [b][c]; [b] palettegen=stats_mode=single [p];[c][p] paletteuse=new=1" "{}output.gif"'.format(
+                secondToStart, gifEnd, video, index, self.fps, self.odest
+            )
         else:
-            #hdmvCompile = 'ffmpeg -y -ss 00:13:14 -copyts -i "{}" -filter_complex "[0:v][0:s:0]overlay" -vframes 1 "{}"output.jpg'.format(
-            #    self.videoFileSelected, self.odest)
-            print()
+            hdmvCompile = 'ffmpeg -y -ss {} -copyts -i "{}" -filter_complex "[0:v][0:s:{}]overlay" -vframes 1 "{}output.jpg"'.format(
+                secondToStart, video, index, self.odest)
 
+        print(hdmvCompile)
         subprocess.call(hdmvCompile,shell=True)
-    '''
-
 
     def stream_number(self, x):
         array = []
@@ -254,15 +252,45 @@ class SCREENSHOT:
             x[i] = abs(int(base) - int(x[i]))
         return x
 
-'''
-def main():
-    print("Started")
-    screenshot = SCREENSHOT()
-    screenshot.delete_files()
-    screenshot.select_video()
-    screenshot.print_info()
-    screenshot.ffmpeg_work()
+    def db_append(self):
+        file_type = "output."
+        if self.gifOrNo:
+            file_type += "gif"
+        else:
+            file_type += "jpg"
+        try:
+            '''
+            md5_hash = hashlib.md5()
+            a_file = open(config.Generated_Media_Location + file_type, "rb")
+            content = a_file.read()
+            md5_hash.update(content)
+            hash = md5_hash.hexdigest()
+            '''
 
-if __name__ == "__main__":
-        main()
-'''
+            if os.path.isfile(config.Text_Location + 'hash_check.db'):
+                print("True  -------------- DB Detected")
+            else:
+                print("False -------------- No DB Detected")
+            '''
+            conn = sqlite3.connect(config.Text_Location + 'hash_check.db')
+            cursor = conn.cursor()
+            table = """CREATE TABLE IF NOT EXISTS HASH(HASHVALUE, TEXTPOST, DATE, RUNCOMMAND);"""
+            cursor.execute(table)
+            sql = """SELECT count(*) as tot FROM HASH"""
+            cursor.execute(sql)
+            data = cursor.fetchone()[0]
+            if (data != 0):
+                    last_hash = str(cursor.execute('select HASHVALUE from HASH').fetchall()[-1][0])
+                    if(last_hash == hash):
+                            #logging.error("Duplicate hash")
+                            #sys.exit("Duplicate hash: Exiting")
+                            print("Duplicate hash: Exiting")
+                            return False
+            cursor.execute("INSERT INTO HASH VALUES (?, ?, ?)",
+                            (hash, self.text_post, str(datetime.now())))
+            conn.commit()
+            conn.close()
+            return True
+            '''
+        except Exception as e:
+            return ("Error: Hash of generated content matches the hash of the previously generated content\nError code: ", str(e))
