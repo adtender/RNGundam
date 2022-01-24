@@ -36,7 +36,7 @@ class SCREENSHOT:
     def delete_files(self):
 
         print("Delete files")
-        [f.unlink() for f in Path(self.odest).glob("*") if f.is_file()]
+        [f.unlink() for f in Path(self.odest).glob("output*") if f.is_file()]
         time.sleep(1)
         ("dest: ", self.odest)
         
@@ -206,38 +206,33 @@ class SCREENSHOT:
         print("v file: ", self.videoFileSelected)
         video = self.windows_check(self.videoFileSelected)
         if self.gifOrNo:
-            #assCompile = 'ffmpeg -y -ss {} -t {} -itsoffset {} -i "{}"  -filter_complex "[0:v]fps={},scale=500:-1:flags=lanczos,split [a][b]; [a] palettegen [p]; [b][p] paletteuse,subtitles={}:si={}[v]" -map "[v]" "{}output.gif"'.format(
-            #    secondToStart, gifEnd, secondToStart, self.videoFileSelected, math.ceil(self.fps), self.videoFileSelected, index, self.odest)
             assCompile = 'ffmpeg -y -ss {} -t {} -itsoffset {} -i "{}" -vf "subtitles={},fps={},scale=500:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=255:reserve_transparent=0[p];[s1][p]paletteuse" {}output.gif'.format(
                 secondToStart, gifEnd, secondToStart, video, video, self.fps, self.odest)
-
         else:
             assCompile = 'ffmpeg -y -ss {} -copyts -i "{}" -vf subtitles="{}":stream_index={} -frames:v 1 "{}output.jpg"'.format(
                 secondToStart, video, video, index, self.odest)
-        #subprocess.check_output(assCompile,shell=True)
-        #print("\n", assCompile, "\n")
-        #self.runCommand = assCompile
+        self.runCommand = assCompile
         subprocess.check_output(assCompile, shell=True)
+
+    def hdmv_pgs_subtitles(self, secondToStart, index, gifEnd):
+        print("v file: ", self.videoFileSelected)
+        video = self.windows_check(self.videoFileSelected)
+        if self.gifOrNo:
+            hdmvCompile = 'ffmpeg -ss {} -t {} -i "{}" -filter_complex "[0:v][0:s:{}] overlay[a];[a] fps={},scale=w=500:h=-2,split [b][c]; [b] palettegen=stats_mode=single [p];[c][p] paletteuse=new=1" "{}output.gif"'.format(
+                secondToStart, gifEnd, video, index, self.fps, self.odest)
+        else:
+            hdmvCompile = 'ffmpeg -y -ss {} -copyts -i "{}" -filter_complex "[0:v][0:s:{}]overlay" -vframes 1 "{}output.jpg"'.format(
+                secondToStart, video, index, self.odest)
+
+        print(hdmvCompile)
+        self.runCommand = hdmvCompile
+        subprocess.call(hdmvCompile,shell=True)
 
     def windows_check(self, video):
         if os.name == 'nt':
             return video.replace("\\", "/")
         else:
             return video
-         
-    def hdmv_pgs_subtitles(self, secondToStart, index, gifEnd):
-        print("v file: ", self.videoFileSelected)
-        video = self.windows_check(self.videoFileSelected)
-        if self.gifOrNo:
-            hdmvCompile = 'ffmpeg -ss {} -t {} -i "{}" -filter_complex "[0:v][0:s:{}] overlay[a];[a] fps={},scale=w=500:h=-2,split [b][c]; [b] palettegen=stats_mode=single [p];[c][p] paletteuse=new=1" "{}output.gif"'.format(
-                secondToStart, gifEnd, video, index, self.fps, self.odest
-            )
-        else:
-            hdmvCompile = 'ffmpeg -y -ss {} -copyts -i "{}" -filter_complex "[0:v][0:s:{}]overlay" -vframes 1 "{}output.jpg"'.format(
-                secondToStart, video, index, self.odest)
-
-        print(hdmvCompile)
-        subprocess.call(hdmvCompile,shell=True)
 
     def stream_number(self, x):
         array = []
@@ -267,30 +262,36 @@ class SCREENSHOT:
             hash = md5_hash.hexdigest()
             '''
 
-            if os.path.isfile(config.Text_Location + 'hash_check.db'):
+            if os.path.isfile(config.Text_Location + 'history.db'):
                 print("True  -------------- DB Detected")
             else:
                 print("False -------------- No DB Detected")
-            '''
-            conn = sqlite3.connect(config.Text_Location + 'hash_check.db')
+            
+            conn = sqlite3.connect(config.Text_Location + 'history.db')
             cursor = conn.cursor()
-            table = """CREATE TABLE IF NOT EXISTS HASH(HASHVALUE, TEXTPOST, DATE, RUNCOMMAND);"""
+            table = """CREATE TABLE IF NOT EXISTS HISTORY(DATE, TEXTPOST, RUNCOMMAND, LINK, HASHVALUE);"""
             cursor.execute(table)
-            sql = """SELECT count(*) as tot FROM HASH"""
+            '''
+            sql = """SELECT count(*) as tot FROM HISTORY"""
             cursor.execute(sql)
             data = cursor.fetchone()[0]
             if (data != 0):
-                    last_hash = str(cursor.execute('select HASHVALUE from HASH').fetchall()[-1][0])
+                    last_hash = str(cursor.execute('select HASHVALUE from HISTORY').fetchall()[-1][0])
                     if(last_hash == hash):
                             #logging.error("Duplicate hash")
                             #sys.exit("Duplicate hash: Exiting")
                             print("Duplicate hash: Exiting")
                             return False
-            cursor.execute("INSERT INTO HASH VALUES (?, ?, ?)",
-                            (hash, self.text_post, str(datetime.now())))
+            '''
+            cursor.execute("INSERT INTO HISTORY VALUES (?, ?, ?, ?, ?)",
+                            (str(datetime.now()), 
+                            "From " + self.videoFileSelectedFileNameNoExtension + " at " + self.frameSelectedTime,
+                            self.runCommand,
+                            "",
+                            ""))
             conn.commit()
             conn.close()
             return True
-            '''
+            
         except Exception as e:
             return ("Error: Hash of generated content matches the hash of the previously generated content\nError code: ", str(e))

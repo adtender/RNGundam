@@ -1,14 +1,7 @@
 import tweepy
-#from TwitterAPI import TwitterAPI
-import sqlite3
-import hashlib
-import logging
-import sys
 import os
-
-#from tweepy.models import Place
 import config
-from datetime import datetime
+
 
 class TWEET:
 

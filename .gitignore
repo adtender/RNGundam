@@ -115,5 +115,8 @@ dmypy.json
 
 bin/config.py
 videos
-output
+output.gif
+output.png
+output.jpg
 test.py
+videoFileList.txt
