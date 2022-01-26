@@ -176,8 +176,6 @@ class SCREENSHOT:
         print(self.videoFileSelectedFileNameNoExtension)
         print(self.frameSelectedTime)
 
-        self.db_append()
-
         print ("FFMPEG work done")
 
     def resize_gif(self, subtitles, secondToStart, indexToSend, gifEnd):
@@ -247,20 +245,18 @@ class SCREENSHOT:
             x[i] = abs(int(base) - int(x[i]))
         return x
 
-    def db_append(self):
+    def db_append(self, tweetLink):
         file_type = "output."
         if self.gifOrNo:
             file_type += "gif"
         else:
             file_type += "jpg"
         try:
-            '''
             md5_hash = hashlib.md5()
             a_file = open(config.Generated_Media_Location + file_type, "rb")
             content = a_file.read()
             md5_hash.update(content)
             hash = md5_hash.hexdigest()
-            '''
 
             if os.path.isfile(config.Text_Location + 'history.db'):
                 print("True  -------------- DB Detected")
@@ -271,6 +267,7 @@ class SCREENSHOT:
             cursor = conn.cursor()
             table = """CREATE TABLE IF NOT EXISTS HISTORY(DATE, TEXTPOST, RUNCOMMAND, LINK, HASHVALUE);"""
             cursor.execute(table)
+
             '''
             sql = """SELECT count(*) as tot FROM HISTORY"""
             cursor.execute(sql)
@@ -283,15 +280,16 @@ class SCREENSHOT:
                             print("Duplicate hash: Exiting")
                             return False
             '''
-            cursor.execute("INSERT INTO HISTORY VALUES (?, ?, ?, ?, ?)",
-                            (str(datetime.now()), 
+            cursor.execute("insert into HISTORY values(?, ?, ?, ?, ?)",
+                            (str(datetime.datetime.now()), 
                             "From " + self.videoFileSelectedFileNameNoExtension + " at " + self.frameSelectedTime,
                             self.runCommand,
-                            "",
-                            ""))
+                            tweetLink,
+                            hash)
+                            )
             conn.commit()
             conn.close()
             return True
             
         except Exception as e:
-            return ("Error: Hash of generated content matches the hash of the previously generated content\nError code: ", str(e))
+            return ("db_append error: " + str(e))

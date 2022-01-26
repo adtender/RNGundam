@@ -2,7 +2,6 @@ import tweepy
 import os
 import config
 
-
 class TWEET:
 
         def __init__(self):
@@ -24,27 +23,28 @@ class TWEET:
                 arg = ""
             
             def send_gif(arg):
-                print("Attempt to upload gif")
+                print("Attempting to upload gif")
                 upload = self.api.media_upload(filename = self.generated_media_location + output, 
                     chunked = True, 
                     media_category = "tweet_gif")
-                self.api.update_status(arg + "\nFrom " + media.videoFileSelectedFileNameNoExtension + " at " + media.frameSelectedTime, 
+                tweet = self.api.update_status(arg + "\nFrom " + media.videoFileSelectedFileNameNoExtension + " at " + media.frameSelectedTime, 
                     media_ids=[upload.media_id_string])
                 print("Gif sent")
+                return tweet
             def send_jpg(arg):
                 print("Attempting to upload jpg")
                 upload = self.api.media_upload(filename = self.generated_media_location + output)
-                self.api.update_status(arg + "\nFrom " + media.videoFileSelectedFileNameNoExtension + " at " + media.frameSelectedTime, 
+                tweet = self.api.update_status(arg + "\nFrom " + media.videoFileSelectedFileNameNoExtension + " at " + media.frameSelectedTime, 
                     media_ids=[upload.media_id_string])
                 print("JPG sent")
+                return tweet
                 
             try:
                 if "gif" in output:
-                    send_gif(arg)
+                    tweet = send_gif(arg)
                 else:
-                    send_jpg(arg)
-                            
-                return "Tweet sent. Check Twitter for new content"
+                    tweet = send_jpg(arg)        
+                return "https://twitter.com/" + config.Twitter_Account + "/status/" + tweet.id_str
             except Exception as e:
                 return ("Error:  tweet not sent: ", str(e))
             

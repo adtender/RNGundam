@@ -113,10 +113,15 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-bin/config.py
 videos
 output.gif
 output.png
 output.jpg
+regenerate.gif
+regenerate.png
+regenerate.jpg
 test.py
 videoFileList.txt
+bin/data/text/history.db
+bin/data/text/history.xlsx
+bin/apiKeys.py
