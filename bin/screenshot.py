@@ -7,6 +7,7 @@ import time
 import subprocess
 import glob
 import config
+import generateFileList
 import cv2
 import sqlite3
 import datetime
@@ -51,35 +52,7 @@ class SCREENSHOT:
         else:
             self.gifOrNo = False
         
-        # Within config.py, define a variable Subfolder set to the integer amount of subfolders within your parent media folder
-        # For example if /Gundam is your containing media folder 
-        # and your video files are in /Gundam/tv/ZetaGundam, variable Subfolders would be 2
-        # 
-        # Within config.py, define a variable Subfolders_Deep set to the integer of the amount of subfolders you want included
-        # For examples if /Gundam/tv/ZetaGundam is the Subfolder it's entered as stated previously and you've defined 1 to
-        # be the Subfolders_Deep, it would also pull video files from /Gundam/tv/ZetaGundam/extras
-        # This is useful if your media setup is /Show/Season or for other such uses
-        
-        wildcardString = "*/*"
-        for _ in range(config.Subfolders):
-            wildcardString += "/*"
-            
-        wildcard = [wildcardString]
-        for i in range(config.Subfolders_Deep):
-            wildcard.append(wildcard[i] + "/*")
-
-        # Define variable Media_Location within config.py
-        # For example, on a media drive  Media_Location = '\\\\raspberrypi\RaspberryPi NAS\media\plex\gundam'
-        # An example for Windows would be  Media_Location = 'C:\\Users\Username\Videos'
-
-        mediaList = []
-        for i in range(len(wildcard)):
-            mediaListUnfiltered = glob.glob(config.Media_Location + wildcard[i])
-            mediaList += [file for file in mediaListUnfiltered if 
-                                ( file.endswith(".mkv") or 
-                                file.endswith(".mp4") or
-                                file.endswith(".mov") or
-                                file.endswith(".avi"))]
+        mediaList = generateFileList.generate_file_list()
         
         self.videoNumberSelected = random.randint(0,len(mediaList)-1)
         #self.videoNumberSelected = 308
@@ -191,10 +164,10 @@ class SCREENSHOT:
     def no_subtitles(self, secondToStart, gifEnd):
         video = self.windows_check(self.videoFileSelected)
         if self.gifOrNo:
-            o = 'ffmpeg -y -ss {} -t {} -i "{}"  -filter_complex "scale=500:-1:flags=lanczos,split [a][b]; [a] palettegen [p]; [b][p] paletteuse" "{}output.gif"'.format(
+            o = 'ffmpeg -hide_banner -loglevel error -y -ss {} -t {} -i "{}"  -filter_complex "scale=500:-1:flags=lanczos,split [a][b]; [a] palettegen [p]; [b][p] paletteuse" "{}output.gif"'.format(
                     secondToStart, gifEnd, video, self.odest)
         else:
-            o = 'ffmpeg -y -ss {} -copyts -i "{}" -vframes 1 "{}output.jpg"'.format(
+            o = 'ffmpeg -hide_banner -loglevel error -y -ss {} -copyts -i "{}" -vframes 1 "{}output.jpg"'.format(
                     secondToStart, video, self.odest)
         subprocess.check_output(o, shell=True)
         print("\n", o, "\n")
@@ -204,10 +177,10 @@ class SCREENSHOT:
         print("v file: ", self.videoFileSelected)
         video = self.windows_check(self.videoFileSelected)
         if self.gifOrNo:
-            assCompile = 'ffmpeg -y -ss {} -t {} -itsoffset {} -i "{}" -vf "subtitles={},fps={},scale=500:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=255:reserve_transparent=0[p];[s1][p]paletteuse" {}output.gif'.format(
+            assCompile = 'ffmpeg -hide_banner -loglevel error -y -ss {} -t {} -itsoffset {} -i "{}" -vf "subtitles={},fps={},scale=500:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=255:reserve_transparent=0[p];[s1][p]paletteuse" {}output.gif'.format(
                 secondToStart, gifEnd, secondToStart, video, video, self.fps, self.odest)
         else:
-            assCompile = 'ffmpeg -y -ss {} -copyts -i "{}" -vf subtitles="{}":stream_index={} -frames:v 1 "{}output.jpg"'.format(
+            assCompile = 'ffmpeg -hide_banner -loglevel error -y -ss {} -copyts -i "{}" -vf subtitles="{}":stream_index={} -frames:v 1 "{}output.jpg"'.format(
                 secondToStart, video, video, index, self.odest)
         self.runCommand = assCompile
         subprocess.check_output(assCompile, shell=True)
@@ -216,10 +189,10 @@ class SCREENSHOT:
         print("v file: ", self.videoFileSelected)
         video = self.windows_check(self.videoFileSelected)
         if self.gifOrNo:
-            hdmvCompile = 'ffmpeg -ss {} -t {} -i "{}" -filter_complex "[0:v][0:s:{}] overlay[a];[a] fps={},scale=w=500:h=-2,split [b][c]; [b] palettegen=stats_mode=single [p];[c][p] paletteuse=new=1" "{}output.gif"'.format(
+            hdmvCompile = 'ffmpeg -hide_banner -loglevel error -ss {} -t {} -i "{}" -filter_complex "[0:v][0:s:{}] overlay[a];[a] fps={},scale=w=500:h=-2,split [b][c]; [b] palettegen=stats_mode=single [p];[c][p] paletteuse=new=1" "{}output.gif"'.format(
                 secondToStart, gifEnd, video, index, self.fps, self.odest)
         else:
-            hdmvCompile = 'ffmpeg -y -ss {} -copyts -i "{}" -filter_complex "[0:v][0:s:{}]overlay" -vframes 1 "{}output.jpg"'.format(
+            hdmvCompile = 'ffmpeg -hide_banner -loglevel error -y -ss {} -copyts -i "{}" -filter_complex "[0:v][0:s:{}]overlay" -vframes 1 "{}output.jpg"'.format(
                 secondToStart, video, index, self.odest)
 
         print(hdmvCompile)
