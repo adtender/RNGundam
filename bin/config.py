@@ -31,7 +31,19 @@ Text_Location = './data/text/'
 Regeneration_Location = './data/regenerate/'
 
 # Chance for a gif to appear in percentage. RNGundam uses 33, or a 1 in 3 chance approximately for a gif to appear
-Chance_Of_GIF = 0
+Chance_Of_GIF = 33
+
+# If a video has a subtitle track that you want to use that is not the default 0
+# enter the starting index, the ending index and the track you want to use.
+# All this information can be found by generating videoFileList.txt in devTests.py and
+# video_file_subtitle_list also in devTests.py
+# Shown below is two different shows with indicies from 298-347 and 198-246 which I want to use the subtitle track of 1 for
+# If you want to do it for a single video, say subtitle track 3 on index 51, you would enter (51, 52, 3) within the []
+# Example:
+Switch_Subtitle_Track = [
+                            (198, 246, 1),  # Gundam Wing
+                            (298, 347, 1)   # Zeta Gundam
+                        ]
 
 # How long in seconds to make gifs
 # Remember that twitter has a 15mb limit for gifs so a small number is recommended
@@ -40,7 +52,7 @@ GIF_Length = 7
 
 # Tool to regenerate the gif IF it is greater than 15mb. 
 # Recommend that you keep this True otherwise nothing will post when it's above the file size cap
-GIF_Resize = False
+GIF_Resize = True
 
 # Change this to the handle of your twitter bot account
 Twitter_Account = "RNGundamTest"

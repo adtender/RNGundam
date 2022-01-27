@@ -21,29 +21,46 @@ def list_video_files():
 
 def video_file_subtitle_list(arg):
     check = True
+    checkIndv = True
     if len(arg) == 3:
         check = True
     else:
         check = False
+    if len(arg) == 1:
+        checkIndv == True
+
+    def normalize(input):
+        output = input.splitlines()
+        outputListIndv = []
+        for i, j in enumerate(output):
+            outputListIndv.append([i, j])
+            print (i, j)
+        print()
+        return(outputListIndv)
+        
 
     def logic(start, end):
         print()
         mediaList = generateFileList.generate_file_list()
-        for x in range(start, end+1):
+        outputList = []
+        for x in range(int(start), int(end) + int(1)):
             print(mediaList[x])
-            subtitleOutput = 'ffprobe -hide_banner -loglevel error -select_streams s -show_entries stream=index,codec_name:stream_tags=language,title,codec_name -of compact=p=0:nk=1 "{}"'.format(
+            subtitleOutput = 'ffprobe -hide_banner -loglevel error -select_streams s -show_entries stream=codec_name:stream_tags=language,title,codec_name -of compact=p=0:nk=1 "{}"'.format(
                 mediaList[x]
             )
             bytes = subprocess.check_output(subtitleOutput, shell=True)
-            print(bytes.decode('UTF-8'))
-        print("REMEMBER:\nStream tracks start at 0. \nIf the above tracks state 3 and 4, in reality they're 0 and 1\n")
+            output = bytes.decode('UTF-8')
+            outputList.append(normalize(output))
+        return(outputList)
 
     if check:
-        logic(int(arg[1]), int(arg[2]))
+        return(logic(int(arg[1]), int(arg[2])))
+    elif checkIndv and not arg[0] == 'devTests.py':
+        return(logic((arg[0]), (arg[0])))
     else:
         start, end = input("Enter a starting index and an ending index for the videos you'd like to see\n"+
                         "If you don't know which values to enter, press ctrl+c and run list_video_files in devTests.py\n").split()
-        logic(start, end)
+        return(logic(start, end))
 
 def drop_table():
     conn = sqlite3.connect(config.Text_Location + 'history.db')

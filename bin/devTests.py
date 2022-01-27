@@ -8,8 +8,7 @@ import sys
 # Print video file and it's subtitle tracks + titles
 # input the starting index of the first video and ending index of the last
 # These are found in videoFileList.txt (generated above)
-# If you want to find information for only one video, input it's index and then it's index + 1
-#print(devTestsMethods.video_file_subtitle_list(sys.argv))
+#devTestsMethods.video_file_subtitle_list(sys.argv)
 
 # Deletes database
 #devTestsMethods.drop_table()

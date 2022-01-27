@@ -6,10 +6,12 @@ import config
 
 # TODO: 
 # Fix error 413 on linux (fixed?)
-# Fix selecting no subtitle when PGS before ass, use zeta gundam as test
-# Add new file to check for exception where you don't want to use the first subtitle (ex: if song only subtitle is default)
+# Fix gif outside time limit
 # remake code to no longer use itsoffset (done on hdmv)
 # make videos with subtitles generate faster
+# add select certain video and time within video
+# add day checker for special posts
+# add top four posts of the month (will require imagemagick)
         
 def main(arg):
     if(os.path.isdir(config.Media_Location) == False):
@@ -25,7 +27,7 @@ def main(arg):
         media.ffmpeg_work()
         tweetLink = tweet.set(media, arg)
         print(tweetLink)
-        print(media.db_append(tweetLink))
+        media.db_append(tweetLink)
 
 if __name__ == "__main__":
     main(sys.argv)
