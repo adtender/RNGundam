@@ -13,5 +13,5 @@ import sys
 # Deletes database
 #devTestsMethods.drop_table()
 
-# View database in excel format, output to /RNGundam/bin/data/text/history.xlsx
+# View history database in excel format, output to /RNGundam/bin/data/text/history.xlsx
 #devTestsMethods.db_to_xlsx()

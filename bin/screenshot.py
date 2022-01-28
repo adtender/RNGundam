@@ -21,7 +21,7 @@ class SCREENSHOT:
     
     def __init__(self) -> None:
         self.odest = config.Generated_Media_Location
-        self.videoNumberSelected = 243 # change to zero before committing
+        self.videoNumberSelected = 0
         self.videoFileSelected = ""
         self.videoFileSelectedPath = ""
         self.videoFileSelectedFileName = ""
@@ -43,18 +43,26 @@ class SCREENSHOT:
         time.sleep(1)
         ("dest: ", self.odest)
         
-    def select_video(self):
+    def select_video(self, arg):
         
         print("Select video")
-        if random.randint(1,100) <= config.Chance_Of_GIF:
+        if not arg[4]:
+            if random.randint(1,100) <= config.Chance_Of_GIF:
+                self.gifOrNo = True
+            else:
+                self.gifOrNo = False
+        elif arg[4] == "gif":
             self.gifOrNo = True
-        else:
+        elif arg[4] == "image":
             self.gifOrNo = False
         
         mediaList = generateFileList.generate_file_list()
         
-        self.videoNumberSelected = random.randint(0,len(mediaList)-1)
-        #self.videoNumberSelected = 303
+        if not arg[2]:
+            self.videoNumberSelected = random.randint(0,len(mediaList)-1)
+        else:
+            self.videoNumberSelected = int(arg[2])
+        #self.videoNumberSelected = 500
         self.videoFileSelected = mediaList[self.videoNumberSelected]
         self.videoFileSelectedPath, self.videoFileSelectedFileName = os.path.split(self.videoFileSelected)
         self.videoFileSelectedFileNameNoExtension = os.path.splitext(self.videoFileSelectedFileName)[0]
@@ -63,7 +71,10 @@ class SCREENSHOT:
         self.totalFrames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self.totalSeconds = round(self.totalFrames/self.fps)
         self.totalTime = strftime("%H:%M:%S", gmtime(self.totalSeconds))
-        self.frameSelected = random.randint(0,self.totalFrames-1)
+        if not arg[3]:
+            self.frameSelected = random.randint(0,self.totalFrames-1)
+        else:
+            self.frameSelected = int(arg[3])
         self.frameSelectedTime = strftime("%H:%M:%S", gmtime(round(self.frameSelected/self.fps)))
         
         if ((self.frameSelected/self.fps) >= self.totalSeconds - config.GIF_Length): # TODO Fix this
@@ -79,37 +90,27 @@ class SCREENSHOT:
         print("Gif or no: ", self.gifOrNo)
         print("Frame rate:", self.fps)
         print("Amount of time in seconds: ", self.totalSeconds)
-        
-        
-    def ffmpeg_work(self):
+        print("Video index: ", self.videoNumberSelected)
+           
+    def ffmpeg_work(self, arg):
+
+        if arg[5]:
+            config.GIF_Length = int(arg[5])/int(self.fps)
 
         def no_subs():
             self.no_subtitles(secondToStart, config.GIF_Length)
             if self.gifOrNo and config.GIF_Resize: 
                 self.resize_gif(False, secondToStart, None, config.GIF_Length, "")
-
-        '''
-        # Output the subtitle streams
-        if os.name == 'nt': # Windows
-            x = 'ffprobe -i "{}" -show_streams -select_streams s 2>&1| findstr /r "Stream.*#0:.*:.*Subtitle:"'.format(self.videoFileSelected) 
-        else: # Linux
-            x = 'ffprobe -i "{}" -show_streams -select_streams s 2>&1| grep ".*Stream.*#0:.*:.*Subtitle:.*"'.format(self.videoFileSelected)
-        subError = False
-        '''
         
         secondToStart = self.frameSelected/self.fps
-        firstSubtitleStreamNumber = ""
-
         outputList = devTestsMethods.video_file_subtitle_list([self.videoNumberSelected])
-        if not (outputList[0]):
+
+        if (arg[2] and not arg[6]):
             print("No subtitles found")
             no_subs()
-            '''
-            subError = True
-            self.no_subtitles(secondToStart, config.GIF_Length)
-            if self.gifOrNo and config.GIF_Resize: 
-                self.resize_gif(False, secondToStart, None, config.GIF_Length)
-            '''
+        elif not (outputList[0]):
+            print("No subtitles found")
+            no_subs()
         else:
             assEng = []
             hdmvEng = []
@@ -135,8 +136,10 @@ class SCREENSHOT:
             elif hdmvEng:
                 if subOverwrite == False:
                     index = hdmvEng[0]
-            if index == -1:
-                no_subs()
+            #if index == -1:
+            #    no_subs()
+            if arg[6]:
+                index = int(arg[6])
             if outputList[0][index][1].find('ass') != -1:
                 self.ass_subtitles(secondToStart, index, config.GIF_Length)
                 if self.gifOrNo and config.GIF_Resize: 
@@ -145,57 +148,6 @@ class SCREENSHOT:
                 self.hdmv_pgs_subtitles(secondToStart, index, config.GIF_Length)
                 if self.gifOrNo and config.GIF_Resize: 
                     self.resize_gif(True, secondToStart, index, config.GIF_Length, "hdmv")
-
-
-        '''
-        try:
-            subCheck = subprocess.check_output(x,shell=True).decode(sys.stdout.encoding)
-            print("Sub check", subCheck)
-            subLangCheck = subCheck.splitlines()
-            #firstSubtitleStreamNumber = self.stream_number(subLangCheck)
-        except Exception as e:
-            print("Error: ", e)
-            print("No subtitles found")
-            subError = True
-            self.no_subtitles(secondToStart, config.GIF_Length)
-            if self.gifOrNo and config.GIF_Resize: self.resize_gif(False, secondToStart, None, config.GIF_Length)
-            print("No subtitles found")
-            
-        if (subError == False): # Checks for English subtitles
-            firstSubtitleStreamNumber = self.stream_number(subLangCheck)
-            r = re.compile(".*[(]eng[)].*")
-            subLangEng = list(filter(r.match, subLangCheck))
-            if (not subLangEng):
-                r = re.compile(".*Stream.*#0:.\:.*") # Search for streams with no language tags
-                subLangEng = list(filter(r.match, subLangCheck))
-                if (not subLangEng): 
-                    r = re.compile(".*Subtitle.*") # On failure of finding English subtitles, creates a list with the rest
-                    subLangEng = list(filter(r.match, subLangCheck))
-            
-            assR = re.compile(".*Subtitle:.*ass.*")
-            assSearch = list(filter(assR.match, subLangEng))
-            hdmvR = re.compile(".*Subtitle:.*hdmv.*")
-            hdmvSearch = list(filter(hdmvR.match, subLangEng))
-            assStream = self.stream_adjust(self.stream_number(assSearch), firstSubtitleStreamNumber[0])
-            hdmvStream = self.stream_adjust(self.stream_number(hdmvSearch), firstSubtitleStreamNumber[0]) # hdmv_PGS subtitles aren't currently working, may use this later when I've figured it out
-            print("sub lang eng", subLangEng, "\nass stream", assStream)
-            index = 0
-            for i in config.Switch_Subtitle_Track:
-                if self.videoNumberSelected in range(i[0], i[1]):
-                    index = i[2]
-            if assStream:
-                print("ass")
-                print(self.videoFileSelected)
-                indexToSend = assStream[index]
-                self.ass_subtitles(secondToStart, indexToSend, config.GIF_Length)
-                if self.gifOrNo and config.GIF_Resize: self.resize_gif(True, secondToStart, indexToSend, config.GIF_Length)
-                
-            else:
-                print("hdmv")
-                print(hdmvStream[0])
-                self.hdmv_pgs_subtitles(secondToStart, hdmvStream[0], config.GIF_Length)
-                if self.gifOrNo and config.GIF_Resize: self.resize_gif(False, secondToStart, None, config.GIF_Length)
-        '''
                 
         print(self.videoFileSelectedFileNameNoExtension)
         print(self.frameSelectedTime)
@@ -206,6 +158,7 @@ class SCREENSHOT:
         originalGifEnd = gifEnd
         while (os.path.getsize("{}".format(self.odest + "output.gif")) >= 15728640 and self.gifOrNo == True):
             gifEnd -= 1
+            print("Resizing, new time is ", gifEnd, " seconds")
             if subtitles:
                 if subType == "ass":
                     self.ass_subtitles(secondToStart, indexToSend, gifEnd)
@@ -216,63 +169,52 @@ class SCREENSHOT:
         if gifEnd != originalGifEnd: print("gif resized\nResized gif length: ", gifEnd)
 
     def no_subtitles(self, secondToStart, gifEnd):
+        print("\nNo subtitle gif generation")
+        print("v file: ", self.videoFileSelected)
         video = self.windows_check(self.videoFileSelected)
         if self.gifOrNo:
-            o = 'ffmpeg -hide_banner -loglevel error -y -ss {} -t {} -i "{}"  -filter_complex "scale=500:-1:flags=lanczos,split [a][b]; [a] palettegen [p]; [b][p] paletteuse" "{}output.gif"'.format(
+            o = 'ffmpeg -hide_banner -y -ss {} -t {} -i "{}"  -filter_complex "scale=500:-1:flags=lanczos,split [a][b]; [a] palettegen [p]; [b][p] paletteuse" "{}output.gif"'.format(
                     secondToStart, gifEnd, video, self.odest)
         else:
-            o = 'ffmpeg -hide_banner -loglevel error -y -ss {} -copyts -i "{}" -vframes 1 "{}output.jpg"'.format(
+            o = 'ffmpeg -hide_banner -y -ss {} -copyts -i "{}" -vframes 1 "{}output.jpg"'.format(
                     secondToStart, video, self.odest)
         subprocess.check_output(o, shell=True)
         print("\n", o, "\n")
         self.runCommand = o
 
     def ass_subtitles(self, secondToStart, index, gifEnd):
+        print("\nAss subtitle gif generation")
         print("v file: ", self.videoFileSelected)
         video = self.windows_check(self.videoFileSelected)
         if self.gifOrNo:
-            assCompile = 'ffmpeg -hide_banner -loglevel error -y -ss {} -t {} -itsoffset {} -i "{}" -vf "subtitles={}:stream_index={},fps={},scale=500:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=255:reserve_transparent=0[p];[s1][p]paletteuse" {}output.gif'.format(
+            assCompile = 'ffmpeg -hide_banner -y -ss {} -t {} -itsoffset {} -i "{}" -vf "subtitles={}:stream_index={},fps={},scale=500:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=255:reserve_transparent=0[p];[s1][p]paletteuse" {}output.gif'.format(
                 secondToStart, gifEnd, secondToStart, video, video, index, self.fps, self.odest)
         else:
-            assCompile = 'ffmpeg -hide_banner -loglevel error -y -ss {} -copyts -i "{}" -vf subtitles="{}":stream_index={} -frames:v 1 "{}output.jpg"'.format(
+            assCompile = 'ffmpeg -hide_banner -y -ss {} -copyts -i "{}" -vf subtitles="{}":stream_index={} -frames:v 1 "{}output.jpg"'.format(
                 secondToStart, video, video, index, self.odest)
         self.runCommand = assCompile
         subprocess.check_output(assCompile, shell=True)
+        print("\n", self.runCommand, "\n")
 
     def hdmv_pgs_subtitles(self, secondToStart, index, gifEnd):
+        print("\nHdmv subtitle gif generation")
         print("v file: ", self.videoFileSelected)
         video = self.windows_check(self.videoFileSelected)
         if self.gifOrNo:
-            hdmvCompile = 'ffmpeg -hide_banner -loglevel error -ss {} -t {} -i "{}" -filter_complex "[0:v][0:s:{}] overlay[a];[a] fps={},scale=w=500:h=-2,split [b][c]; [b] palettegen=stats_mode=single [p];[c][p] paletteuse=new=1" "{}output.gif"'.format(
+            hdmvCompile = 'ffmpeg -hide_banner -ss {} -t {} -i "{}" -filter_complex "[0:v][0:s:{}] overlay[a];[a] fps={},scale=w=500:h=-2,split [b][c]; [b] palettegen=stats_mode=single [p];[c][p] paletteuse=new=1" "{}output.gif"'.format(
                 secondToStart, gifEnd, video, index, self.fps, self.odest)
         else:
-            hdmvCompile = 'ffmpeg -hide_banner -loglevel error -y -ss {} -copyts -i "{}" -filter_complex "[0:v][0:s:{}]overlay" -vframes 1 "{}output.jpg"'.format(
+            hdmvCompile = 'ffmpeg -hide_banner -y -ss {} -copyts -i "{}" -filter_complex "[0:v][0:s:{}]overlay" -vframes 1 "{}output.jpg"'.format(
                 secondToStart, video, index, self.odest)
-
-        print(hdmvCompile)
         self.runCommand = hdmvCompile
         subprocess.call(hdmvCompile,shell=True)
+        print("\n", self.runCommand, "\n")
 
     def windows_check(self, video):
         if os.name == 'nt':
             return video.replace("\\", "/")
         else:
             return video
-
-    '''
-    def stream_number(self, x):
-        array = []
-        for i in range(len(x)):
-            m = re.search('Stream #0:\d*', x[i])
-            n = re.search('\d*$', m.group(0))
-            array.append(n.group(0))
-        return array
-
-    def stream_adjust(self, x, base):
-        for i in range(len(x)):
-            x[i] = abs(int(base) - int(x[i]))
-        return x
-    '''
 
     def db_append(self, tweetLink):
 

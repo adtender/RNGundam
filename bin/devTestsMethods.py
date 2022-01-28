@@ -44,7 +44,7 @@ def video_file_subtitle_list(arg):
         mediaList = generateFileList.generate_file_list()
         outputList = []
         for x in range(int(start), int(end) + int(1)):
-            print(mediaList[x])
+            print(x, "\n"+ mediaList[x])
             subtitleOutput = 'ffprobe -hide_banner -loglevel error -select_streams s -show_entries stream=codec_name:stream_tags=language,title,codec_name -of compact=p=0:nk=1 "{}"'.format(
                 mediaList[x]
             )

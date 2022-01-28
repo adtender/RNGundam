@@ -41,8 +41,10 @@ Chance_Of_GIF = 33
 # If you want to do it for a single video, say subtitle track 3 on index 51, you would enter (51, 52, 3) within the []
 # Example:
 Switch_Subtitle_Track = [
-                            (198, 246, 1),  # Gundam Wing
-                            (298, 347, 1)   # Zeta Gundam
+                            (197, 245, 1),  # Gundam Wing
+                            (297, 346, 1),  # Zeta Gundam
+                            (543, 591, 0),
+                            (592, 616, 0)   # Gundam Build Fighters
                         ]
 
 # How long in seconds to make gifs
