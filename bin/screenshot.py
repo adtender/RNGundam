@@ -67,7 +67,7 @@ class SCREENSHOT:
         self.videoFileSelectedPath, self.videoFileSelectedFileName = os.path.split(self.videoFileSelected)
         self.videoFileSelectedFileNameNoExtension = os.path.splitext(self.videoFileSelectedFileName)[0]
         cap = cv2.VideoCapture(self.videoFileSelected)
-        self.fps = math.ceil(cap.get(cv2.CAP_PROP_FPS))
+        self.fps = cap.get(cv2.CAP_PROP_FPS)
         self.totalFrames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self.totalSeconds = round(self.totalFrames/self.fps)
         self.totalTime = strftime("%H:%M:%S", gmtime(self.totalSeconds))
@@ -173,8 +173,8 @@ class SCREENSHOT:
         print("v file: ", self.videoFileSelected)
         video = self.windows_check(self.videoFileSelected)
         if self.gifOrNo:
-            o = 'ffmpeg -hide_banner -y -ss {} -t {} -i "{}"  -filter_complex "scale=500:-1:flags=lanczos,split [a][b]; [a] palettegen [p]; [b][p] paletteuse" "{}output.gif"'.format(
-                    secondToStart, gifEnd, video, self.odest)
+            o = 'ffmpeg -hide_banner -y -ss {} -t {} -i "{}" -r {}  -filter_complex "scale=500:-1:flags=lanczos,split [a][b]; [a] palettegen [p]; [b][p] paletteuse" "{}output.gif"'.format(
+                    secondToStart, gifEnd, video, math.ceil(self.fps), self.odest)
         else:
             o = 'ffmpeg -hide_banner -y -ss {} -copyts -i "{}" -vframes 1 "{}output.jpg"'.format(
                     secondToStart, video, self.odest)
@@ -187,8 +187,10 @@ class SCREENSHOT:
         print("v file: ", self.videoFileSelected)
         video = self.windows_check(self.videoFileSelected)
         if self.gifOrNo:
-            assCompile = 'ffmpeg -hide_banner -y -ss {} -t {} -itsoffset {} -i "{}" -vf "subtitles={}:stream_index={},fps={},scale=500:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=255:reserve_transparent=0[p];[s1][p]paletteuse" {}output.gif'.format(
-                secondToStart, gifEnd, secondToStart, video, video, index, self.fps, self.odest)
+            #assCompile = 'ffmpeg -hide_banner -y -ss {} -t {} -itsoffset {} -i "{}" -vf "subtitles={}:stream_index={},fps={},scale=500:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=255:reserve_transparent=0[p];[s1][p]paletteuse" {}output.gif'.format(
+            #    secondToStart, gifEnd, secondToStart, video, video, index, self.fps, self.odest)
+            assCompile = 'ffmpeg -hide_banner -y -ss {} -t {} -i "{}" -r {} -vf "subtitles={}:stream_index={},scale=500:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=255:reserve_transparent=0[p];[s1][p]paletteuse" "{}output.gif"'.format(
+                secondToStart, gifEnd, video, math.ceil(self.fps), video, index, self.odest)
         else:
             assCompile = 'ffmpeg -hide_banner -y -ss {} -copyts -i "{}" -vf subtitles="{}":stream_index={} -frames:v 1 "{}output.jpg"'.format(
                 secondToStart, video, video, index, self.odest)
@@ -202,7 +204,7 @@ class SCREENSHOT:
         video = self.windows_check(self.videoFileSelected)
         if self.gifOrNo:
             hdmvCompile = 'ffmpeg -hide_banner -ss {} -t {} -i "{}" -filter_complex "[0:v][0:s:{}] overlay[a];[a] fps={},scale=w=500:h=-2,split [b][c]; [b] palettegen=stats_mode=single [p];[c][p] paletteuse=new=1" "{}output.gif"'.format(
-                secondToStart, gifEnd, video, index, self.fps, self.odest)
+                secondToStart, gifEnd, video, index, math.ceil(self.fps), self.odest)
         else:
             hdmvCompile = 'ffmpeg -hide_banner -y -ss {} -copyts -i "{}" -filter_complex "[0:v][0:s:{}]overlay" -vframes 1 "{}output.jpg"'.format(
                 secondToStart, video, index, self.odest)
@@ -216,50 +218,65 @@ class SCREENSHOT:
         else:
             return video
 
-    def db_append(self, tweetLink):
+    def generate_hash(self, file_type):
 
-        file_type = "output."
-        if self.gifOrNo:
-            file_type += "gif"
+        md5_hash = hashlib.md5()
+        a_file = open(config.Generated_Media_Location + file_type, "rb")
+        content = a_file.read()
+        md5_hash.update(content)
+        return md5_hash.hexdigest()
+
+    def duplicate_hash(self, cursor):
+        sql = """SELECT count(*) as tot FROM HISTORY"""
+        cursor.execute(sql)
+        data = cursor.fetchone()[0]
+        if (data != 0):
+                last_hash = str(cursor.execute('select HASHVALUE from HISTORY').fetchall()[-1][0])
+                if(last_hash == hash):
+                        #logging.error("Duplicate hash")
+                        #sys.exit("Duplicate hash: Exiting")
+                        print("Duplicate hash: Exiting")
+                        return False
+
+    def db_append(self, tweetLink, generate):
+
+        conn = sqlite3.connect(config.Text_Location + 'history.db')
+        cursor = conn.cursor()
+
+        file = "output."
+        fileType = ""
+        if not cursor.execute('select LINK from HISTORY').fetchall()[-1][0]:
+            file = "output." + cursor.execute('select TYPE from HISTORY').fetchall()[-1][0]
         else:
-            file_type += "jpg"
+            if self.gifOrNo:
+                fileType = "gif"
+                file += fileType
+            else:
+                fileType = "jpg"
+                file += fileType
+        hash = self.generate_hash(file)
 
-        try:
+        if generate:
             
-            md5_hash = hashlib.md5()
-            a_file = open(config.Generated_Media_Location + file_type, "rb")
-            content = a_file.read()
-            md5_hash.update(content)
-            hash = md5_hash.hexdigest()
-            
-            conn = sqlite3.connect(config.Text_Location + 'history.db')
-            cursor = conn.cursor()
-            table = """CREATE TABLE IF NOT EXISTS HISTORY(DATE, TEXTPOST, RUNCOMMAND, LINK, HASHVALUE);"""
-            cursor.execute(table)
+            #table = """CREATE TABLE IF NOT EXISTS HISTORY(DATE, TEXTPOST, RUNCOMMAND, LINK, HASHVALUE);"""
+            #cursor.execute(table)
+            cursor.execute("""CREATE TABLE IF NOT EXISTS HISTORY(DATE, TEXTPOST, RUNCOMMAND, LINK, HASHVALUE, TYPE);""")
 
-            '''
-            sql = """SELECT count(*) as tot FROM HISTORY"""
-            cursor.execute(sql)
-            data = cursor.fetchone()[0]
-            if (data != 0):
-                    last_hash = str(cursor.execute('select HASHVALUE from HISTORY').fetchall()[-1][0])
-                    if(last_hash == hash):
-                            #logging.error("Duplicate hash")
-                            #sys.exit("Duplicate hash: Exiting")
-                            print("Duplicate hash: Exiting")
-                            return False
-            '''
-            cursor.execute("insert into HISTORY values(?, ?, ?, ?, ?)",
+            #self.duplicate_hash(cursor)
+
+            cursor.execute("insert into HISTORY values(?, ?, ?, ?, ?, ?)",
                             (str(datetime.datetime.now()), 
                             "From " + self.videoFileSelectedFileNameNoExtension + " at " + self.frameSelectedTime,
                             self.runCommand,
-                            tweetLink,
-                            hash)
-                            )
-            conn.commit()
-            conn.close()
+                            "",
+                            hash,
+                            fileType)
+                        )
+
+        else:
+            run = ('UPDATE HISTORY set LINK = "{}" WHERE DATE = (SELECT MAX(DATE) FROM HISTORY)').format(tweetLink)
+            cursor.execute(run)
             devTestsMethods.db_to_xlsx()
-            return True
             
-        except Exception as e:
-            return ("db_append error: " + str(e))
+        conn.commit()
+        conn.close()
