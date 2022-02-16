@@ -4,6 +4,7 @@ import os
 import sqlite3
 import subprocess
 import pandas as pd
+import cv2
 
 def list_video_files():
     mediaList = generateFileList.generate_file_list()
@@ -77,3 +78,22 @@ def db_to_xlsx():
     x.close
     #print(df.to_string())
     df.to_excel(config.Text_Location + "history.xlsx")
+
+def generate_frame_count():
+    mediaList = generateFileList.generate_file_list()
+    totalFrames     = 0
+    totalSeconds    = 0
+    totalMinutes    = 0
+    totalHours      = 0
+    for x in range(len(mediaList)):
+        cap = cv2.VideoCapture(mediaList[x])
+        xFrames = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        totalFrames += xFrames
+        totalSeconds += xFrames/cap.get(cv2.CAP_PROP_FPS)
+        totalMinutes = totalSeconds/60
+        totalHours = totalMinutes/60
+    print("Total videos:\t"     + str(len(mediaList)))
+    print("Total frames:\t"     + str(f"{int(totalFrames):,}"))
+    print("Total seconds:\t"    + str(f"{round(totalSeconds, 2):,}"))
+    print("Total minutes:\t"    + str(f"{round(totalMinutes, 2):,}"))
+    print("Total hours:\t"      + str(f"{round(totalHours,   2):,}"))

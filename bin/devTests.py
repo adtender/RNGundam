@@ -15,3 +15,5 @@ import sys
 
 # View history database in excel format, output to /RNGundam/bin/data/text/history.xlsx
 #devTestsMethods.db_to_xlsx()
+
+devTestsMethods.generate_frame_count()
