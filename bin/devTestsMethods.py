@@ -5,6 +5,7 @@ import sqlite3
 import subprocess
 import pandas as pd
 import cv2
+import tweepy
 
 def list_video_files():
     mediaList = generateFileList.generate_file_list()
@@ -97,3 +98,14 @@ def generate_frame_count():
     print("Total seconds:\t"    + str(f"{round(totalSeconds, 2):,}"))
     print("Total minutes:\t"    + str(f"{round(totalMinutes, 2):,}"))
     print("Total hours:\t"      + str(f"{round(totalHours,   2):,}"))
+
+def tweet(args):
+    api_key = config.API_Key
+    api_key_secret = config.API_Key_Secret
+    access_token = config.Access_Token
+    access_token_secret = config.Access_Token_Secret
+    auth = tweepy.OAuthHandler(api_key, api_key_secret)
+    auth.set_access_token(access_token, access_token_secret)
+    api = tweepy.API(auth, wait_on_rate_limit=True)
+    tweet = api.update_status(args)
+    print("https://twitter.com/" + config.Twitter_Account + "/status/" + tweet.id_str)

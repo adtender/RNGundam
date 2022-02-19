@@ -16,4 +16,8 @@ import sys
 # View history database in excel format, output to /RNGundam/bin/data/text/history.xlsx
 #devTestsMethods.db_to_xlsx()
 
-devTestsMethods.generate_frame_count()
+# View information such as how many videos you use, amount of frames/seconds/minutes/hours of footage
+#devTestsMethods.generate_frame_count()
+
+# Send out a text only tweet
+#devTestsMethods.tweet(sys.argv[1])

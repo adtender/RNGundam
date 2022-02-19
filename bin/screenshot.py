@@ -215,6 +215,7 @@ class SCREENSHOT:
     def windows_check(self, video):
         if os.name == 'nt':
             return video.replace("\\", "/")
+            #return video
         else:
             return video
 
@@ -242,26 +243,38 @@ class SCREENSHOT:
 
         conn = sqlite3.connect(config.Text_Location + 'history.db')
         cursor = conn.cursor()
+        cursor.execute("""CREATE TABLE IF NOT EXISTS HISTORY(DATE, TEXTPOST, RUNCOMMAND, LINK, HASHVALUE, TYPE);""")
 
         file = "output."
         fileType = ""
-        if not cursor.execute('select LINK from HISTORY').fetchall()[-1][0]:
-            file = "output." + cursor.execute('select TYPE from HISTORY').fetchall()[-1][0]
-        else:
-            if self.gifOrNo:
-                fileType = "gif"
-                file += fileType
+
+        def output_type():
+            if self.gifOrNo == True:
+                return "gif"
+            elif self.gifOrNo == False:
+                return "jpg"
             else:
-                fileType = "jpg"
-                file += fileType
-        hash = self.generate_hash(file)
+                return ""
+
+        def hash_match():
+            baseHash = cursor.execute('select HASHVALUE from HISTORY').fetchall()[-1][0]
+            type = cursor.execute('select TYPE from HISTORY').fetchall()[-1][0]
+            matchHash = self.generate_hash("output." + str(type))
+            if baseHash != matchHash:
+                regenerate = cursor.execute('select RUNCOMMAND from HISTORY').fetchall()[-1][0]
+                subprocess.check_output(regenerate, shell=True)
+            return type
+        
+
+        fileType = output_type()
+        print("fileType: ", fileType)
+        if not fileType:
+            fileType = hash_match()
+        file += str(fileType)
 
         if generate:
-            
-            #table = """CREATE TABLE IF NOT EXISTS HISTORY(DATE, TEXTPOST, RUNCOMMAND, LINK, HASHVALUE);"""
-            #cursor.execute(table)
-            cursor.execute("""CREATE TABLE IF NOT EXISTS HISTORY(DATE, TEXTPOST, RUNCOMMAND, LINK, HASHVALUE, TYPE);""")
 
+            hash = self.generate_hash(file)
             #self.duplicate_hash(cursor)
 
             cursor.execute("insert into HISTORY values(?, ?, ?, ?, ?, ?)",
