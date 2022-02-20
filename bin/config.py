@@ -13,7 +13,7 @@ Access_Token_Secret = apiKeys.Access_Token_Secret
 # For example, RNGundam has a parent folder called Gundam with two child folders within, TV and Movies.
 #   Within TV and Movies are subfolders named the TV show or the movie corresponding.
 #   The video files are within that folder, ie: 2 subfolders
-Subfolders = 2
+Subfolders = 0
 
 # How many folders deeper should it search from the Subfolders designation.
 # Many folders within my collection have "Extras" folders within which I'd like to ignore thus Subfolders_Deep = 0
@@ -23,7 +23,8 @@ Subfolders_Deep = 0
 # Location of your videos you will be pulling from
 #Media_Location = './videos' # Windows Test from within the RNGundam parent folder
 #Media_Location = '\\\\raspberrypi\\RaspberryPi NAS\\media\\plex\\gundam' # Networked Raspberry Pi example
-Media_Location = os.path.expanduser('~/usb1/media/plex/gundam')
+#Media_Location = os.path.expanduser('~/usb1/media/plex/gundam')
+Media_Location = './data/videos'
 
 # Leave these alone
 Generated_Media_Location = './data/output/'
